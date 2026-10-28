@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.arcadia/
+*.tgz
+*.log
+.DS_Store

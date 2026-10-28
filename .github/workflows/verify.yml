@@ -1,0 +1,28 @@
+name: Content pack
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build and install the pinned development SDK
+        run: npm run setup
+      - name: Typecheck and exercise the actual npm package
+        run: npm test
+      - name: Create the content package
+        run: npm run pack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: content-pack
+          path: '*.tgz'
+          if-no-files-found: error

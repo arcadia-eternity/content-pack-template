@@ -1,0 +1,54 @@
+{
+  "name": "@arcadia-eternity/content-pack-template",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "files": [
+    "content.json",
+    "dist",
+    "src",
+    "assets"
+  ],
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "rename": "node scripts/rename.mjs",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run check && npm run build && node --test test/*.test.mjs",
+    "demo": "npm run build && node scripts/demo.mjs",
+    "pack": "npm run check && npm run build && npm pack --ignore-scripts"
+  },
+  "devDependencies": {
+    "@arcadia-eternity/battle": "1.0.0",
+    "@arcadia-eternity/pack-loader": "1.0.0",
+    "@types/node": "25.6.0",
+    "typescript": "6.0.3"
+  },
+  "arcadia": {
+    "formatVersion": 1,
+    "projectId": "example-content-pack",
+    "namespace": "example-pack",
+    "content": "content.json",
+    "effects": "dist/effects.js",
+    "sdkApi": 1,
+    "exports": [
+      {
+        "id": "apply-slow",
+        "sourceKind": "skill"
+      },
+      {
+        "id": "speed-penalty",
+        "sourceKind": "petMark"
+      }
+    ]
+  },
+  "description": "A runnable Arcadia Eternity user-defined content pack: species, skills, marks and TypeScript effects.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arcadia-eternity/content-pack-template.git"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}
