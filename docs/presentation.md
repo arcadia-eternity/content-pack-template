@@ -31,7 +31,7 @@ presentation:
     fallback: assets/pets/frostling-battle.png
 ```
 
-播放器由 `renderer` 明确选择，不根据文件后缀推断。这个播放器适配 Seer2 战斗动画，不承诺支持任意 SWF。`fallback` 是加载失败时的包内图片。[strike.yaml](../data/skills/strike.yaml) 另外用 `presentation.sfx` 声明远程 MP3。
+播放器由 `renderer` 明确选择，不根据文件后缀推断。这个播放器适配 Seer2 战斗动画，不承诺支持任意 SWF。`fallback` 是加载失败时的包内图片。[strike.yaml](../data/skills/strike.yaml) 和 [rest.yaml](../data/skills/rest.yaml) 都用 `presentation.sfx` 声明远程 MP3；模板中的两个技能复用同一段命中音效，可以分别替换。
 
 HTTP 和 HTTPS 都是合法引用。源站需允许客户端跨域读取；HTTPS 网页访问 HTTP 仍受浏览器混合内容规则约束，因此实际示例使用 HTTPS。构建与环境准备仅记录外链，不访问或下载外链，不把 URL 伪装成有固定文件摘要的包内素材。固定环境固定 URL 引用，不能保证外链字节不变。
 
