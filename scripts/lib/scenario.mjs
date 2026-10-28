@@ -40,11 +40,16 @@ export async function prepareExample() {
     )
     const packed = JSON.parse(result.stdout)[0]
     const files = packed.files.map((file) => file.path)
-    assert.ok(files.includes('content.json') && files.includes('dist/effects.js'))
+    assert.ok(files.includes(manifest.arcadia.content) && files.includes('dist/effects.js'))
     assert.ok(
       !files.some((file) => /^(?:\.arcadia|\.github|node_modules|test|scripts)\//.test(file)),
       'the package must contain content, not a developer workspace',
     )
+    assert.ok(
+      files.some((file) => file.startsWith('data/species/')),
+      'editable data must ship with the package',
+    )
+    assert.ok(!files.includes('content.json'), 'there must not be a second root content document')
     const installation = join(temporary, 'server-project')
     await mkdir(installation)
     await writeFile(

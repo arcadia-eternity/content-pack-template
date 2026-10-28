@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import YAML from 'yaml'
+import { readContentSources } from './lib/content.mjs'
 
 const args = process.argv.slice(2)
 if (args.includes('--help')) {
@@ -31,11 +33,11 @@ if (
 if (!/^[a-z0-9][a-z0-9_.-]{0,79}$/.test(options['--namespace'] ?? '') || options['--namespace'] === 'base')
   throw new Error('Provide a non-reserved lowercase namespace (1–80 characters).')
 
-const packagePath = resolve('package.json'),
-  contentPath = resolve('content.json')
+const root = resolve('.')
+const packagePath = resolve('package.json')
 const manifest = JSON.parse(await readFile(packagePath, 'utf8'))
 const oldId = manifest.arcadia.projectId
-const content = JSON.parse(await readFile(contentPath, 'utf8'))
+const sources = await readContentSources(root)
 function rewrite(value) {
   if (Array.isArray(value)) return value.map(rewrite)
   if (!value || typeof value !== 'object') return value
@@ -46,8 +48,22 @@ function rewrite(value) {
 manifest.name = options['--name']
 manifest.arcadia.projectId = options['--project-id']
 manifest.arcadia.namespace = options['--namespace']
+const changes = sources.map((source) => {
+  if (!source.document)
+    return { file: source.file, text: JSON.stringify(rewrite(source.value), null, 2) + '\n' }
+  YAML.visit(source.document, {
+    Map(_key, node) {
+      let reference = node.get('$ref', true)
+      if (YAML.isAlias(reference)) reference = reference.resolve(source.document)
+      if (!YAML.isMap(reference)) return
+      const project = reference.get('projectId', true)
+      if (YAML.isScalar(project) && project.value === oldId) project.value = options['--project-id']
+    },
+  })
+  return { file: source.file, text: String(source.document) }
+})
 await writeFile(packagePath, JSON.stringify(manifest, null, 2) + '\n')
-await writeFile(contentPath, JSON.stringify(rewrite(content), null, 2) + '\n')
+for (const change of changes) await writeFile(change.file, change.text)
 console.log(
   `Renamed to ${manifest.name}. Update repository metadata before publishing. Keep projectId and namespace stable after sharing.`,
 )

@@ -30,16 +30,35 @@ npm run setup -- --sdk-dir /absolute/path/to/author-sdk --offline
 
 物料目录需包含 `arcadia-author-sdk.json` 和列出的全部 `.tgz`。安装脚本核对 API 版本、SDK 产物校验和及安装后的构建身份；使用外部物料时，安装记录不会声称其来自模板固定的源码提交。
 
+## 数据按文件组织
+
+日常编辑的是 `data/` 下的独立文件：
+
+```text
+data/
+  species/pet.yaml       # 精灵
+  skills/strike.yaml     # 攻击技能
+  skills/rest.yaml       # 休息技能
+  marks/slow.yaml        # 减速印记
+src/effects.ts           # TypeScript 效果
+dist/content.json        # 构建生成，不提交、不手工编辑
+```
+
+JSON、YAML 都可以；默认每个对象一个文件，也支持单文件数组和分类目录下的子目录。新增内容时直接添加文件，不用维护集中索引。可选的兼容行为数据放在 `data/behaviors/`；本示例的效果直接用 TS 导出。
+
+`npm run build` 编译效果代码，并收集源数据生成加载器所需的 `dist/content.json`。这是运行时产物，源数据仍按文件维护。记录按 ID 排序，移动文件或调整分组不会改变 ID 和输出顺序；重复 ID、缺失 ID、非法 JSON/YAML 会报告源文件路径，失败不会覆盖上一次成功生成的数据。
+
 ## 先改什么
 
-| 文件                                                                                                   | 内容                                        |
-| ------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| [content.json](content.json)                                                                           | 精灵数值、技能、印记，以及相互引用          |
-| [src/effects.ts](src/effects.ts)                                                                       | 效果逻辑：原生命中回调、参数和持续速度贡献  |
-| [test/pack.test.mjs](test/pack.test.mjs)                                                               | 实际 npm 包在真实引擎中的场景断言           |
-| [scripts/demo.mjs](scripts/demo.mjs)                                                                   | 两名玩家自动对战，输出每回合 HP、速度和印记 |
-| [arcadia-sdk.json](arcadia-sdk.json)                                                                   | SDK 来源、固定提交和 API 兼容版本           |
-| [.agents/skills/arcadia-content-authoring/SKILL.md](.agents/skills/arcadia-content-authoring/SKILL.md) | 供编码助手使用的创作与验证指引              |
+| 文件                                                                                                   | 内容                                                     |
+| ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| [data/](data/)                                                                                         | 分类目录中的精灵、技能、印记及相互引用，每个对象独立文件 |
+| [scripts/build-content.mjs](scripts/build-content.mjs)                                                 | 将 JSON/YAML 源文件收集为运行时数据                      |
+| [src/effects.ts](src/effects.ts)                                                                       | 效果逻辑：原生命中回调、参数和持续速度贡献               |
+| [test/pack.test.mjs](test/pack.test.mjs)                                                               | 实际 npm 包在真实引擎中的场景断言                        |
+| [scripts/demo.mjs](scripts/demo.mjs)                                                                   | 两名玩家自动对战，输出每回合 HP、速度和印记              |
+| [arcadia-sdk.json](arcadia-sdk.json)                                                                   | SDK 来源、固定提交和 API 兼容版本                        |
+| [.agents/skills/arcadia-content-authoring/SKILL.md](.agents/skills/arcadia-content-authoring/SKILL.md) | 供编码助手使用的创作与验证指引                           |
 
 简单效果直接使用注入的 SDK，与官方效果的写法一致：
 
@@ -60,7 +79,7 @@ defineCodeEffect({
 
 ## 换成自己的包身份
 
-在首次分享前执行，命令会同步改写本包的结构化内容引用，保留跨包引用：
+在首次分享前执行，命令会遍历 JSON/YAML 源文件，同步改写本包的结构化内容引用，保留跨包引用和 YAML 注释：
 
 ```sh
 npm run rename -- --name @your-scope/my-pack --project-id my-pack --namespace my-pack
@@ -72,13 +91,13 @@ npm 包名用于安装；`projectId`、namespace、局部 ID、`useId` 和绑定
 ## 测试与演示
 
 ```sh
-npm run check  # 检查 TypeScript
+npm run check  # 检查 TypeScript 和源数据的语法／ID
 npm test       # 编译、打包、在独立临时 npm 项目安装，然后运行真实战斗
 npm run demo   # 完整的自动对战演示
 npm run pack   # 生成可供服务器安装的 .tgz
 ```
 
-测试覆盖未命中、命中、重复刷新、可修改参数、双局隔离、抑制、来源转移与移除、自然到期、受支持等待点的 JSON 保存／恢复，以及相同种子两场完整对战的一致性。它检查的是实际打包产物；SDK 缓存、开发脚本和测试不会进入内容包。
+测试覆盖未命中、命中、重复刷新、可修改参数、双局隔离、抑制、来源转移与移除、自然到期、受支持等待点的 JSON 保存／恢复，以及相同种子两场完整对战的一致性。它检查的是实际打包产物；内容包带上分文件源数据和生成的运行时数据；SDK 缓存、开发脚本和测试不会进入内容包。
 
 GitHub Actions 从固定上游提交构建 SDK，执行相同检查，并上传内容包 `.tgz`。它不发布 npm，也不配置生产服务器准入。
 

@@ -1,54 +1,43 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import YAML from 'yaml'
 const exec = promisify(execFile)
 const script = resolve(dirname(fileURLToPath(import.meta.url)), '../scripts/rename.mjs')
+const files = ['package.json', 'data/skills/strike.yaml', 'data/skills/nested/rest.json']
 
 async function fixture() {
   const dir = await mkdtemp(join(tmpdir(), 'arcadia-template-rename-'))
+  await mkdir(join(dir, 'data/skills/nested'), { recursive: true })
   const manifest = {
     name: '@template/pack',
     private: true,
     arcadia: { projectId: 'old-pack', namespace: 'old-pack' },
   }
-  const content = {
-    data: {
-      skills: [
-        {
-          behaviors: [
-            {
-              definitionId: {
-                $ref: {
-                  projectId: 'old-pack',
-                  kind: 'behavior',
-                  id: 'apply-slow',
-                },
-              },
-            },
-            {
-              definitionId: {
-                $ref: {
-                  projectId: 'another-pack',
-                  kind: 'behavior',
-                  id: 'external',
-                },
-              },
-            },
-          ],
-        },
-      ],
-    },
-  }
-  await writeFile(join(dir, 'package.json'), JSON.stringify(manifest))
-  await writeFile(join(dir, 'content.json'), JSON.stringify(content))
+  const skill = (id) => ({
+    id,
+    behaviors: [
+      { definitionId: { $ref: { projectId: 'old-pack', kind: 'behavior', id: 'apply-slow' } } },
+      { definitionId: { $ref: { projectId: 'another-pack', kind: 'behavior', id: 'external' } } },
+    ],
+  })
+  await writeFile(join(dir, files[0]), JSON.stringify(manifest))
+  await writeFile(
+    join(dir, files[1]),
+    '# Keep this author comment.\n' +
+      YAML.stringify(skill('strike')).replace('projectId: old-pack', 'projectId: old-pack # local identity'),
+  )
+  await writeFile(join(dir, files[2]), JSON.stringify([skill('rest')]))
   return dir
 }
-test('renaming changes stable local references together and preserves external package identities', async () => {
+const readAll = (dir) => Promise.all(files.map((file) => readFile(join(dir, file), 'utf8')))
+
+test('renaming rewrites split JSON/YAML references, preserves comments and leaves foreign identities unchanged', async () => {
   const dir = await fixture()
   try {
     await exec(
@@ -56,27 +45,28 @@ test('renaming changes stable local references together and preserves external p
       [script, '--name', '@me/frost', '--project-id', 'my-frost', '--namespace', 'frost'],
       { cwd: dir },
     )
-    const manifest = JSON.parse(await readFile(join(dir, 'package.json'), 'utf8'))
-    const content = JSON.parse(await readFile(join(dir, 'content.json'), 'utf8'))
+    const [packageText, yamlText, jsonText] = await readAll(dir)
+    const manifest = JSON.parse(packageText)
     assert.equal(manifest.name, '@me/frost')
     assert.equal(manifest.arcadia.projectId, 'my-frost')
     assert.equal(manifest.arcadia.namespace, 'frost')
     assert.equal(manifest.private, true)
-    assert.deepEqual(
-      content.data.skills[0].behaviors.map((b) => b.definitionId.$ref.projectId),
-      ['my-frost', 'another-pack'],
-    )
+    for (const skill of [YAML.parse(yamlText), ...JSON.parse(jsonText)])
+      assert.deepEqual(
+        skill.behaviors.map((b) => b.definitionId.$ref.projectId),
+        ['my-frost', 'another-pack'],
+      )
+    assert.match(yamlText, /# Keep this author comment\./)
+    assert.match(yamlText, /projectId: my-frost # local identity/)
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
 })
 for (const namespace of ['base', '../outside', 'Invalid']) {
-  test(`invalid namespace ${namespace} fails before modifying either file`, async () => {
+  test(`invalid namespace ${namespace} fails before modifying source files`, async () => {
     const dir = await fixture()
     try {
-      const before = await Promise.all(
-        ['package.json', 'content.json'].map((file) => readFile(join(dir, file), 'utf8')),
-      )
+      const before = await readAll(dir)
       await assert.rejects(
         exec(
           process.execPath,
@@ -84,12 +74,27 @@ for (const namespace of ['base', '../outside', 'Invalid']) {
           { cwd: dir },
         ),
       )
-      const after = await Promise.all(
-        ['package.json', 'content.json'].map((file) => readFile(join(dir, file), 'utf8')),
-      )
-      assert.deepEqual(after, before)
+      assert.deepEqual(await readAll(dir), before)
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
   })
 }
+test('a malformed source file leaves the package identity and all valid sources untouched', async () => {
+  const dir = await fixture()
+  try {
+    const before = await readAll(dir)
+    await writeFile(join(dir, 'data/skills/broken.yaml'), 'id: [')
+    await assert.rejects(
+      exec(
+        process.execPath,
+        [script, '--name', '@me/frost', '--project-id', 'my-frost', '--namespace', 'frost'],
+        { cwd: dir },
+      ),
+      /broken\.yaml/,
+    )
+    assert.deepEqual(await readAll(dir), before)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})

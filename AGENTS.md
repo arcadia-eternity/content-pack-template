@@ -1,7 +1,8 @@
 # Working on this content pack
 
-Read README.md, package.json, arcadia-sdk.json, content.json, src/effects.ts and the tests before editing. The coding-agent workflow is in .agents/skills/arcadia-content-authoring/SKILL.md.
+Read README.md, package.json, arcadia-sdk.json, data/, scripts/build-content.mjs, src/effects.ts and the tests before editing. The coding-agent workflow is in .agents/skills/arcadia-content-authoring/SKILL.md.
 
+- Edit JSON/YAML source files under data/species, data/skills, data/marks or data/behaviors. dist/content.json is generated; do not edit it.
 - Use the host-injected SDK and canonical mark prototypes. Prefer the existing native triggers/when/apply API for simple effects; existing binding helpers remain optional.
 - Keep stable project/namespace/content/use/binding identities unless a breaking identity change is requested. Run npm run rename before first sharing to customize the template.
 - Use the battle RNG. Put persistent state in supported engine instances, parameters and bindings rather than shared module variables.
