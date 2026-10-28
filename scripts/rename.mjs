@@ -56,7 +56,8 @@ const changes = sources.map((source) => {
       let reference = node.get('$ref', true)
       if (YAML.isAlias(reference)) reference = reference.resolve(source.document)
       if (!YAML.isMap(reference)) return
-      const project = reference.get('projectId', true)
+      let project = reference.get('projectId', true)
+      if (YAML.isAlias(project)) project = project.resolve(source.document)
       if (YAML.isScalar(project) && project.value === oldId) project.value = options['--project-id']
     },
   })

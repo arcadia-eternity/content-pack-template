@@ -98,3 +98,34 @@ test('a malformed source file leaves the package identity and all valid sources 
     await rm(dir, { recursive: true, force: true })
   }
 })
+
+test('YAML aliases to a reference map or its project identity remain valid after renaming', async () => {
+  const dir = await fixture()
+  try {
+    await writeFile(
+      join(dir, files[1]),
+      `id: strike
+localIdentity: &local old-pack # keep identity note
+reference: &reference
+  projectId: *local
+  kind: behavior
+  id: apply-slow
+behaviors:
+  - definitionId:
+      $ref: *reference
+`,
+    )
+    await exec(
+      process.execPath,
+      [script, '--name', '@me/frost', '--project-id', 'my-frost', '--namespace', 'frost'],
+      { cwd: dir },
+    )
+    const text = await readFile(join(dir, files[1]), 'utf8')
+    assert.equal(YAML.parse(text).behaviors[0].definitionId.$ref.projectId, 'my-frost')
+    assert.match(text, /# keep identity note/)
+    assert.match(text, /\*reference/)
+    assert.match(text, /\*local/)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
