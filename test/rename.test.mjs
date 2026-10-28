@@ -99,13 +99,12 @@ test('a malformed source file leaves the package identity and all valid sources 
   }
 })
 
-test('YAML aliases to a reference map or its project identity remain valid after renaming', async () => {
+test('shared YAML anchors do not change content IDs or unrelated fields during project renaming', async () => {
   const dir = await fixture()
   try {
     await writeFile(
       join(dir, files[1]),
-      `id: strike
-localIdentity: &local old-pack # keep identity note
+      `id: &local old-pack # keep identity note
 reference: &reference
   projectId: *local
   kind: behavior
@@ -121,10 +120,11 @@ behaviors:
       { cwd: dir },
     )
     const text = await readFile(join(dir, files[1]), 'utf8')
-    assert.equal(YAML.parse(text).behaviors[0].definitionId.$ref.projectId, 'my-frost')
+    const record = YAML.parse(text)
+    assert.equal(record.behaviors[0].definitionId.$ref.projectId, 'my-frost')
+    assert.equal(record.id, 'old-pack')
+    assert.equal(record.reference.projectId, 'old-pack')
     assert.match(text, /# keep identity note/)
-    assert.match(text, /\*reference/)
-    assert.match(text, /\*local/)
   } finally {
     await rm(dir, { recursive: true, force: true })
   }

@@ -79,7 +79,7 @@ defineCodeEffect({
 
 ## 换成自己的包身份
 
-在首次分享前执行，命令会遍历 JSON/YAML 源文件，同步改写本包的结构化内容引用，保留跨包引用和 YAML 注释：
+在首次分享前执行，命令会遍历 JSON/YAML 源文件，同步改写本包的结构化内容引用，保留跨包引用和 YAML 注释。遇到共享的 YAML 别名时会展开为独立值，避免连带修改其他内容 ID：
 
 ```sh
 npm run rename -- --name @your-scope/my-pack --project-id my-pack --namespace my-pack

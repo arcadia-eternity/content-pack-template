@@ -51,13 +51,24 @@ manifest.arcadia.namespace = options['--namespace']
 const changes = sources.map((source) => {
   if (!source.document)
     return { file: source.file, text: JSON.stringify(rewrite(source.value), null, 2) + '\n' }
+  // Detach alias uses before editing: an anchor may also supply an unrelated content ID.
+  const aliases = new Map()
+  YAML.visit(source.document, {
+    Alias(_key, alias) {
+      const replacement = source.document.createNode(alias.toJS(source.document), {
+        aliasDuplicateObjects: false,
+      })
+      replacement.comment = alias.comment
+      replacement.commentBefore = alias.commentBefore
+      aliases.set(alias, replacement)
+    },
+  })
+  YAML.visit(source.document, { Alias: (_key, alias) => aliases.get(alias) })
   YAML.visit(source.document, {
     Map(_key, node) {
-      let reference = node.get('$ref', true)
-      if (YAML.isAlias(reference)) reference = reference.resolve(source.document)
+      const reference = node.get('$ref', true)
       if (!YAML.isMap(reference)) return
-      let project = reference.get('projectId', true)
-      if (YAML.isAlias(project)) project = project.resolve(source.document)
+      const project = reference.get('projectId', true)
       if (YAML.isScalar(project) && project.value === oldId) project.value = options['--project-id']
     },
   })
