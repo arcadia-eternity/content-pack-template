@@ -28,7 +28,7 @@ npm run setup -- --sdk-dir /absolute/path/to/author-sdk
 npm exec --offline -- arcadia-content setup --sdk-dir /absolute/path/to/author-sdk --offline
 ```
 
-物料目录需包含 `arcadia-author-sdk.json` 和列出的全部 `.tgz`，包括开发工具包。可在上游构建工具依赖图后运行 `node scripts/stage-author-sdk.mjs /new/sdk-dir --dev-tools` 生成。首次入口需要网络；安装过工具后，以上第二条命令才可完全离线运行。安装脚本核对 API 版本、SDK 产物校验和及安装后的构建身份；使用外部物料时，安装记录不会声称其来自模板固定的源码提交。
+物料目录需包含 `arcadia-author-sdk.json` 和列出的全部 `.tgz`，包括开发工具包。可在上游构建工具依赖图后运行 `node scripts/stage-author-sdk.mjs /new/sdk-dir` 生成。首次入口需要网络；安装过工具后，以上第二条命令才可完全离线运行。安装脚本核对 API 版本、SDK 产物校验和及安装后的构建身份；使用外部物料时，安装记录不会声称其来自模板固定的源码提交。
 
 ## 数据按文件组织
 
@@ -44,7 +44,7 @@ src/effects.ts           # TypeScript 效果
 dist/content.json        # 构建生成，不提交、不手工编辑
 ```
 
-JSON、YAML 都可以；默认每个对象一个文件，也支持单文件数组和分类目录下的子目录。新增内容时直接添加文件，不用维护集中索引。可选的兼容行为数据放在 `data/behaviors/`；本示例的效果直接用 TS 导出。
+JSON、YAML 都可以；默认每个对象一个文件，也支持单文件数组和分类目录下的子目录。新增内容时直接添加文件，不用维护集中索引。效果直接在 TypeScript 中定义，由技能和印记数据引用对应 ID；不用在 `package.json` 再维护 `arcadia.exports`，也不用额外写一份效果元数据。
 
 `npm run build` 编译效果代码，并收集源数据生成加载器所需的 `dist/content.json`。这是运行时产物，源数据仍按文件维护。记录按 ID 排序，移动文件或调整分组不会改变 ID 和输出顺序；重复 ID、缺失 ID、非法 JSON/YAML 会报告源文件路径，失败不会覆盖上一次成功生成的数据。
 
@@ -110,8 +110,8 @@ GitHub Actions 从固定上游提交构建 SDK，执行相同检查，并上传�
 
 以下链接固定到模板所用的上游源码版本：
 
-- [Effect SDK：上下文、领域操作、参数、清理与失败语义](https://github.com/arcadia-eternity/arcadia-eternity/blob/8d8aaa6972c681b126864a9464afbcd5a8002e96/docs/v4/effect-sdk.md)
-- [npm 内容包、引用、安装、准入与固定环境](https://github.com/arcadia-eternity/arcadia-eternity/blob/8d8aaa6972c681b126864a9464afbcd5a8002e96/docs/v4/npm-content.md)
-- [可选的选择、计算、capture/follow 与绑定工具](https://github.com/arcadia-eternity/arcadia-eternity/blob/8d8aaa6972c681b126864a9464afbcd5a8002e96/docs/v4/effect-authoring.md)
+- [Effect SDK：上下文、领域操作、参数、清理与失败语义](https://github.com/arcadia-eternity/arcadia-eternity/blob/44de0b7a9d0adf7b36065be04d3e2fe76f667057/docs/v4/effect-sdk.md)
+- [npm 内容包、引用、安装、准入与固定环境](https://github.com/arcadia-eternity/arcadia-eternity/blob/44de0b7a9d0adf7b36065be04d3e2fe76f667057/docs/v4/npm-content.md)
+- [可选的选择、计算、capture/follow 与绑定工具](https://github.com/arcadia-eternity/arcadia-eternity/blob/44de0b7a9d0adf7b36065be04d3e2fe76f667057/docs/v4/effect-authoring.md)
 
 升级 SDK／开发工具时，修改 `arcadia-sdk.json` 的固定提交，并重新运行 setup、类型检查和场景测试；活动对局仍应使用原来的固定环境。源码版本、SDK API 版本和实际构建身份分别表达不同的兼容信息。

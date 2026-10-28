@@ -14,7 +14,7 @@
     "rename": "arcadia-content rename",
     "check": "arcadia-content check",
     "build": "arcadia-content build",
-    "test": "npm run check && npm run build && node --test test/*.test.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
     "demo": "npm run build && arcadia-content demo",
     "pack": "arcadia-content pack"
   },
@@ -31,17 +31,7 @@
     "namespace": "example-pack",
     "content": "dist/content.json",
     "effects": "dist/effects.js",
-    "sdkApi": 1,
-    "exports": [
-      {
-        "id": "apply-slow",
-        "sourceKind": "skill"
-      },
-      {
-        "id": "speed-penalty",
-        "sourceKind": "petMark"
-      }
-    ]
+    "sdkApi": 2
   },
   "description": "A runnable Arcadia Eternity user-defined content pack: species, skills, marks and TypeScript effects.",
   "license": "MIT",

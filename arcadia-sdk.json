@@ -1,6 +1,6 @@
 {
-  "sdkApi": 1,
+  "sdkApi": 2,
   "repository": "https://github.com/arcadia-eternity/arcadia-eternity.git",
-  "revision": "8d8aaa6972c681b126864a9464afbcd5a8002e96",
+  "revision": "44de0b7a9d0adf7b36065be04d3e2fe76f667057",
   "pnpmVersion": "11.21.0"
 }
