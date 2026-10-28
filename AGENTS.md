@@ -3,6 +3,8 @@
 Read README.md, package.json, arcadia-sdk.json, data/, arcadia.config.mjs, src/effects.ts and the tests before editing. The coding-agent workflow is in .agents/skills/arcadia-content-authoring/SKILL.md.
 
 - Edit JSON/YAML source files under data/species, data/skills, data/marks. dist/content.json is generated; do not edit it.
+- Declare media by usage in each record's presentation, keep package files under assets/, and choose battle.renderer explicitly. HTTP/HTTPS references remain URLs: do not predownload or add resource caches.
+- Keep localized names and ICU rich descriptions in locales/<language>/<namespace>.yaml. dist/presentation.json is generated. When renaming the namespace, also update full IDs in rich-text mark references; rename only rewrites structured references.
 - Define effects once in TypeScript and reference their IDs from skills/marks; do not add arcadia.exports or duplicate behavior metadata.
 - Use the host-injected SDK and canonical mark prototypes. Prefer the existing native triggers/when/apply API for simple effects; existing binding helpers remain optional.
 - Keep stable project/namespace/content/use/binding identities unless a breaking identity change is requested. Run npm run rename before first sharing to customize the template.

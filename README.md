@@ -2,7 +2,7 @@
 
 一个可以直接修改、测试和打包的用户定义内容包。点击 GitHub 的 **Use this template → Create a new repository**，把它复制到自己的账号或组织下。
 
-示例包含一只精灵、两个技能、一个持续两回合的减速印记，以及 TypeScript 效果：命中施加减速，重复施加刷新时间，印记到期或被移除时恢复速度。效果使用游戏现有的上下文和领域 API，运行在服务器／Node 宿主中。
+示例包含两只精灵（包内图片与远程 SWF 外观）、两个技能、一个持续两回合的减速印记、中英双语富文本，以及 TypeScript 效果：命中施加减速，重复施加刷新时间，印记到期或被移除时恢复速度。效果使用游戏现有的上下文和领域 API，运行在服务器／Node 宿主中。
 
 ## 快速开始
 
@@ -36,17 +36,23 @@ npm exec --offline -- arcadia-content setup --sdk-dir /absolute/path/to/author-s
 
 ```text
 data/
-  species/pet.yaml       # 精灵
+  species/pet.yaml       # 包内头像、立绘、静态战斗形象
+  species/pet-swf.yaml   # 远程图片、SWF 和包内图片回退
   skills/strike.yaml     # 攻击技能
-  skills/rest.yaml       # 休息技能
+  skills/rest.yaml       # 轻触技能
   marks/slow.yaml        # 减速印记
+assets/pets/*.png        # 本包图片
+assets/marks/slow.png    # 印记图标
+locales/zh-CN/*.yaml     # 中文名称与富文本
+locales/en/*.yaml        # 英文翻译，使用相同局部 ID
 src/effects.ts           # TypeScript 效果
+dist/presentation.json  # 构建生成的素材／语言索引
 dist/content.json        # 构建生成，不提交、不手工编辑
 ```
 
 JSON、YAML 都可以；默认每个对象一个文件，也支持单文件数组和分类目录下的子目录。新增内容时直接添加文件，不用维护集中索引。效果直接在 TypeScript 中定义，由技能和印记数据引用对应 ID；不用在 `package.json` 再维护 `arcadia.exports`，也不用额外写一份效果元数据。
 
-`npm run build` 编译效果代码，并收集源数据生成加载器所需的 `dist/content.json`。这是运行时产物，源数据仍按文件维护。记录按 ID 排序，移动文件或调整分组不会改变 ID 和输出顺序；重复 ID、缺失 ID、非法 JSON/YAML 会报告源文件路径，失败不会覆盖上一次成功生成的数据。
+`npm run build` 编译效果代码，并收集源数据生成加载器所需的 `dist/content.json`，同时生成 `dist/presentation.json` 的素材与语言索引。这是运行时产物，源数据仍按文件维护。记录按 ID 排序，移动文件或调整分组不会改变 ID 和输出顺序；重复 ID、缺失 ID、非法 JSON/YAML 会报告源文件路径，失败不会覆盖上一次成功生成的数据。
 
 ## 先改什么
 
@@ -76,6 +82,22 @@ defineCodeEffect({
 
 `speed-penalty` 展示另一种已有写法：通过 `numberParam` 声明可被战斗效果修改的数值，通过 `follow` 和绑定贡献跟随参数，并在来源印记转移、抑制或销毁时管理生命周期。普通分支、循环、计算和复用直接使用 TypeScript。
 
+## 素材与富文本示例
+
+| 示例                                       | 入口                                                                                               |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| 包内独立头像、立绘、静态战斗形象           | [data/species/pet.yaml](data/species/pet.yaml)                                                     |
+| 远程图片、显式 SWF 播放器、包内图片回退    | [data/species/pet-swf.yaml](data/species/pet-swf.yaml)                                             |
+| 技能按需加载的远程音效                     | [data/skills/strike.yaml](data/skills/strike.yaml)                                                 |
+| 印记图标、富文本中的名称／图标／悬浮引用   | [data/marks/slow.yaml](data/marks/slow.yaml)、[locales/zh-CN/skill.yaml](locales/zh-CN/skill.yaml) |
+| 中英双语、当前威力／命中率、条件与复数文本 | [locales/zh-CN/](locales/zh-CN/)、[locales/en/](locales/en/)                                       |
+
+![包内默认战斗形象](assets/pets/frostling-battle.png) ![减速印记图标](assets/marks/slow.png)
+
+默认演示队伍仍使用 `pet`；在组队时选择 `example-pack:pet-swf`，或把 `arcadia.config.mjs` 中的 species 改为 `${namespace}:pet-swf`，可试用远程外观。远程素材不随构建、打包或环境准备下载，客户端按用途加载，不建立素材缓存。`npm run demo` 是无界面的战斗演示，不播放图片、音效或 SWF。
+
+具体字段、语言回退、动态印记文本、跨包资源和改名注意事项见 [素材与文本创作示例](docs/presentation.md)。
+
 ## 换成自己的包身份
 
 在首次分享前执行，命令会遍历 JSON/YAML 源文件，同步改写本包的结构化内容引用，保留跨包引用和 YAML 注释。遇到共享的 YAML 别名时会展开为独立值，避免连带修改其他内容 ID：
@@ -85,7 +107,7 @@ npm run rename -- --name @your-scope/my-pack --project-id my-pack --namespace my
 npm test
 ```
 
-npm 包名用于安装；`projectId`、namespace、局部 ID、`useId` 和绑定 key 决定游戏内容身份。发布或分享后不要随意修改稳定身份。也请更新 `package.json` 的 repository、描述和版本。
+npm 包名用于安装；`projectId`、namespace、局部 ID、`useId` 和绑定 key 决定游戏内容身份。发布或分享后不要随意修改稳定身份。也请更新 `package.json` 的 repository、描述和版本。`rename` 处理结构化引用；语言文本中的 `<mark>example-pack:slow</mark>` 需手动将 `example-pack` 改成新 namespace。
 
 ## 测试与演示
 
@@ -110,8 +132,9 @@ GitHub Actions 从固定上游提交构建 SDK，执行相同检查，并上传�
 
 以下链接固定到模板所用的上游源码版本：
 
-- [Effect SDK：上下文、领域操作、参数、清理与失败语义](https://github.com/arcadia-eternity/arcadia-eternity/blob/44de0b7a9d0adf7b36065be04d3e2fe76f667057/docs/v4/effect-sdk.md)
-- [npm 内容包、引用、安装、准入与固定环境](https://github.com/arcadia-eternity/arcadia-eternity/blob/44de0b7a9d0adf7b36065be04d3e2fe76f667057/docs/v4/npm-content.md)
-- [可选的选择、计算、capture/follow 与绑定工具](https://github.com/arcadia-eternity/arcadia-eternity/blob/44de0b7a9d0adf7b36065be04d3e2fe76f667057/docs/v4/effect-authoring.md)
+- [Effect SDK：上下文、领域操作、参数、清理与失败语义](https://github.com/arcadia-eternity/arcadia-eternity/blob/9adab4f414ed3077ae494d3615d8351b10ce2878/docs/v4/effect-sdk.md)
+- [素材、语言与富文本合同](https://github.com/arcadia-eternity/arcadia-eternity/blob/9adab4f414ed3077ae494d3615d8351b10ce2878/docs/v4/content-presentation.md)
+- [npm 内容包、引用、安装、准入与固定环境](https://github.com/arcadia-eternity/arcadia-eternity/blob/9adab4f414ed3077ae494d3615d8351b10ce2878/docs/v4/npm-content.md)
+- [可选的选择、计算、capture/follow 与绑定工具](https://github.com/arcadia-eternity/arcadia-eternity/blob/9adab4f414ed3077ae494d3615d8351b10ce2878/docs/v4/effect-authoring.md)
 
 升级 SDK／开发工具时，修改 `arcadia-sdk.json` 的固定提交，并重新运行 setup、类型检查和场景测试；活动对局仍应使用原来的固定环境。源码版本、SDK API 版本和实际构建身份分别表达不同的兼容信息。

@@ -21,7 +21,15 @@ setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
 let example
 before(
   async () => {
-    example = await prepareContentPack()
+    const fetch = globalThis.fetch
+    globalThis.fetch = () => {
+      throw new Error('Preparing the sample pack must not fetch remote resources')
+    }
+    try {
+      example = await prepareContentPack()
+    } finally {
+      globalThis.fetch = fetch
+    }
     assert.ok(example.files.some((file) => file.startsWith('data/species/')))
     assert.ok(!example.files.includes('content.json'))
   },
@@ -29,6 +37,50 @@ before(
 )
 after(async () => {
   await example?.dispose()
+})
+
+test('the installed package includes local artwork, remote declarations and both languages', () => {
+  for (const file of [
+    'dist/presentation.json',
+    'docs/presentation.md',
+    'assets/pets/frostling-icon.png',
+    'assets/pets/frostling-portrait.png',
+    'assets/pets/frostling-battle.png',
+    'assets/marks/slow.png',
+    ...['zh-CN', 'en'].flatMap((language) =>
+      ['species', 'skill', 'mark'].map((kind) => `locales/${language}/${kind}.yaml`),
+    ),
+  ])
+    assert.ok(example.files.includes(file), `Missing packaged file: ${file}`)
+  const presentation = example.environment.presentation.find(
+    (item) => item.namespace === example.manifest.arcadia.namespace,
+  )
+  assert.ok(presentation)
+  assert.equal(presentation.resources.length, 4, 'only the four packaged images have local file paths')
+  const remote = presentation.manifest.resources.filter((resource) => resource.kind === 'http')
+  assert.equal(remote.length, 3)
+  assert.ok(remote.some((resource) => resource.mime === 'application/x-shockwave-flash'))
+  assert.ok(remote.some((resource) => resource.mime === 'audio/mpeg'))
+  for (const resource of remote) {
+    assert.equal(resource.id, resource.source)
+    assert.equal('sha256' in resource, false)
+    assert.equal('bytes' in resource, false)
+  }
+  assert.equal(presentation.manifest.defaultLocale, 'zh-CN')
+  for (const [language, name] of [
+    ['zh-CN', '霜击'],
+    ['en', 'Frost Strike'],
+  ]) {
+    const locales = presentation.manifest.locales[language]
+    assert.equal(locales.skill.strike.name, name)
+    assert.match(locales.skill.strike.description, /\{power, plural,/)
+    assert.match(locales.skill.rest.description, /<damage>\{power\}<\/damage>/)
+    assert.ok(
+      locales.skill.strike.description.includes(`<mark>${example.manifest.arcadia.namespace}:slow</mark>`),
+    )
+    assert.ok(locales.species['pet-swf'].name)
+    assert.ok(locales.mark.slow.description)
+  }
 })
 
 test('the installed package handles miss, hit, refresh, parameter updates, transfer and source removal', () => {
