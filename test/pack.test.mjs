@@ -7,13 +7,23 @@ import {
   RemoveMarkContext,
   TurnContext,
   parameterAddress,
+  setGlobalLogger,
 } from '@arcadia-eternity/battle/v4'
-import { attack, cancelled, nextTurn, prepareExample, runBattle } from '../scripts/lib/scenario.mjs'
+import {
+  attack,
+  cancelled,
+  nextTurn,
+  prepareContentPack,
+  runBattle,
+} from '@arcadia-eternity/content-dev/testing'
+setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
 
 let example
 before(
   async () => {
-    example = await prepareExample()
+    example = await prepareContentPack()
+    assert.ok(example.files.some((file) => file.startsWith('data/species/')))
+    assert.ok(!example.files.includes('content.json'))
   },
   { timeout: 60000 },
 )

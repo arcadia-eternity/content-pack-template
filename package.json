@@ -10,20 +10,20 @@
     "assets"
   ],
   "scripts": {
-    "setup": "node scripts/setup.mjs",
-    "rename": "node scripts/rename.mjs",
-    "check": "tsc -p tsconfig.json --noEmit && node scripts/build-content.mjs --check",
-    "build": "tsc -p tsconfig.json && node scripts/build-content.mjs",
+    "setup": "node --input-type=module -e \"const p=JSON.parse(await (await import('node:fs/promises')).readFile('arcadia-sdk.json','utf8'));const r=await fetch('https://raw.githubusercontent.com/arcadia-eternity/arcadia-eternity/'+p.revision+'/packages/content-dev/src/setup.mjs');if(!r.ok)throw Error('Cannot fetch pinned setup: '+r.status);const {setup}=await import('data:text/javascript;base64,'+Buffer.from(await r.text()).toString('base64'));await setup(process.argv.slice(1))\" --",
+    "rename": "arcadia-content rename",
+    "check": "arcadia-content check",
+    "build": "arcadia-content build",
     "test": "npm run check && npm run build && node --test test/*.test.mjs",
-    "demo": "npm run build && node scripts/demo.mjs",
-    "pack": "npm run check && npm run build && npm pack --ignore-scripts"
+    "demo": "npm run build && arcadia-content demo",
+    "pack": "arcadia-content pack"
   },
   "devDependencies": {
     "@arcadia-eternity/battle": "1.0.0",
     "@arcadia-eternity/pack-loader": "1.0.0",
     "@types/node": "25.6.0",
     "typescript": "6.0.3",
-    "yaml": "2.8.4"
+    "@arcadia-eternity/content-dev": "0.1.0"
   },
   "arcadia": {
     "formatVersion": 1,

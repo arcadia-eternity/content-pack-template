@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Build and install the pinned development SDK
+      - name: Build and install the pinned SDK and author tool
         run: npm run setup
       - name: Typecheck and exercise the actual npm package
         run: npm test

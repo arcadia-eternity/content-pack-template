@@ -16,7 +16,7 @@ npm test
 npm run demo
 ```
 
-首次 `setup` 需要网络：按 [arcadia-sdk.json](arcadia-sdk.json) 中固定的提交获取引擎源码，使用固定的 pnpm 版本和上游锁文件构建 SDK，再安装本项目的开发依赖。源码、SDK 物料和安装记录放在被 Git 忽略的 `.arcadia/` 中；后续运行可复用已生成的 SDK。
+首次 `setup` 的小入口从固定上游提交载入安装器；所有安装逻辑都在主仓库，模板不复制脚本。安装器需要网络：按 [arcadia-sdk.json](arcadia-sdk.json) 中固定的提交获取引擎源码，使用固定的 pnpm 版本和上游锁文件构建 SDK，再安装本项目的开发依赖。源码、SDK 物料和安装记录放在被 Git 忽略的 `.arcadia/` 中；后续运行可复用已生成的 SDK。工具作为 `@arcadia-eternity/content-dev` 安装到本项目，提供 `arcadia-content` 命令；`build/check/rename/demo/pack` 都调用它。
 
 **SDK 目前尚未正式发布到 npm。** 不要直接用 `npm install` 获取清单中的 Arcadia 目标版本，先运行 `npm run setup`。项目通过本地 tarball 安装 SDK；`package.json` 记录兼容目标，第三方依赖由 npm 正常获取。此开发安装不生成项目锁文件；部署内容包的服务器项目应单独维护标准 npm 锁文件。SDK 源码固定不等于所有宿主环境或未来第三方依赖字节都相同。
 
@@ -25,10 +25,10 @@ npm run demo
 ```sh
 npm run setup -- --sdk-dir /absolute/path/to/author-sdk
 # 只有第三方依赖已进入 npm 缓存时才能离线安装：
-npm run setup -- --sdk-dir /absolute/path/to/author-sdk --offline
+npm exec --offline -- arcadia-content setup --sdk-dir /absolute/path/to/author-sdk --offline
 ```
 
-物料目录需包含 `arcadia-author-sdk.json` 和列出的全部 `.tgz`。安装脚本核对 API 版本、SDK 产物校验和及安装后的构建身份；使用外部物料时，安装记录不会声称其来自模板固定的源码提交。
+物料目录需包含 `arcadia-author-sdk.json` 和列出的全部 `.tgz`，包括开发工具包。可在上游构建工具依赖图后运行 `node scripts/stage-author-sdk.mjs /new/sdk-dir --dev-tools` 生成。首次入口需要网络；安装过工具后，以上第二条命令才可完全离线运行。安装脚本核对 API 版本、SDK 产物校验和及安装后的构建身份；使用外部物料时，安装记录不会声称其来自模板固定的源码提交。
 
 ## 数据按文件组织
 
@@ -53,10 +53,9 @@ JSON、YAML 都可以；默认每个对象一个文件，也支持单文件数�
 | 文件                                                                                                   | 内容                                                     |
 | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
 | [data/](data/)                                                                                         | 分类目录中的精灵、技能、印记及相互引用，每个对象独立文件 |
-| [scripts/build-content.mjs](scripts/build-content.mjs)                                                 | 将 JSON/YAML 源文件收集为运行时数据                      |
 | [src/effects.ts](src/effects.ts)                                                                       | 效果逻辑：原生命中回调、参数和持续速度贡献               |
 | [test/pack.test.mjs](test/pack.test.mjs)                                                               | 实际 npm 包在真实引擎中的场景断言                        |
-| [scripts/demo.mjs](scripts/demo.mjs)                                                                   | 两名玩家自动对战，输出每回合 HP、速度和印记              |
+| [arcadia.config.mjs](arcadia.config.mjs)                                                               | 演示／测试队伍；通过传入的 namespace 引用本包内容        |
 | [arcadia-sdk.json](arcadia-sdk.json)                                                                   | SDK 来源、固定提交和 API 兼容版本                        |
 | [.agents/skills/arcadia-content-authoring/SKILL.md](.agents/skills/arcadia-content-authoring/SKILL.md) | 供编码助手使用的创作与验证指引                           |
 
@@ -97,7 +96,7 @@ npm run demo   # 完整的自动对战演示
 npm run pack   # 生成可供服务器安装的 .tgz
 ```
 
-测试覆盖未命中、命中、重复刷新、可修改参数、双局隔离、抑制、来源转移与移除、自然到期、受支持等待点的 JSON 保存／恢复，以及相同种子两场完整对战的一致性。它检查的是实际打包产物；内容包带上分文件源数据和生成的运行时数据；SDK 缓存、开发脚本和测试不会进入内容包。
+测试覆盖未命中、命中、重复刷新、可修改参数、双局隔离、抑制、来源转移与移除、自然到期、受支持等待点的 JSON 保存／恢复，以及相同种子两场完整对战的一致性。它检查的是实际打包产物；内容包带上分文件源数据和生成的运行时数据；SDK 缓存、开发工具和测试不会进入内容包。通用工具自身的 JSON/YAML、重命名与安装回归在主仓库维护；模板只保留本包的行为测试。
 
 GitHub Actions 从固定上游提交构建 SDK，执行相同检查，并上传内容包 `.tgz`。它不发布 npm，也不配置生产服务器准入。
 
@@ -111,8 +110,8 @@ GitHub Actions 从固定上游提交构建 SDK，执行相同检查，并上传�
 
 以下链接固定到模板所用的上游源码版本：
 
-- [Effect SDK：上下文、领域操作、参数、清理与失败语义](https://github.com/arcadia-eternity/arcadia-eternity/blob/21baa8a78b3f06a9736fe5965ea03cb7616b69bb/docs/v4/effect-sdk.md)
-- [npm 内容包、引用、安装、准入与固定环境](https://github.com/arcadia-eternity/arcadia-eternity/blob/21baa8a78b3f06a9736fe5965ea03cb7616b69bb/docs/v4/npm-content.md)
-- [可选的选择、计算、capture/follow 与绑定工具](https://github.com/arcadia-eternity/arcadia-eternity/blob/21baa8a78b3f06a9736fe5965ea03cb7616b69bb/docs/v4/effect-authoring.md)
+- [Effect SDK：上下文、领域操作、参数、清理与失败语义](https://github.com/arcadia-eternity/arcadia-eternity/blob/8d8aaa6972c681b126864a9464afbcd5a8002e96/docs/v4/effect-sdk.md)
+- [npm 内容包、引用、安装、准入与固定环境](https://github.com/arcadia-eternity/arcadia-eternity/blob/8d8aaa6972c681b126864a9464afbcd5a8002e96/docs/v4/npm-content.md)
+- [可选的选择、计算、capture/follow 与绑定工具](https://github.com/arcadia-eternity/arcadia-eternity/blob/8d8aaa6972c681b126864a9464afbcd5a8002e96/docs/v4/effect-authoring.md)
 
-升级 SDK 时，修改固定提交，并重新运行 setup、类型检查和场景测试；活动对局仍应使用原来的固定环境。源码版本、SDK API 版本和实际构建身份分别表达不同的兼容信息。
+升级 SDK／开发工具时，修改 `arcadia-sdk.json` 的固定提交，并重新运行 setup、类型检查和场景测试；活动对局仍应使用原来的固定环境。源码版本、SDK API 版本和实际构建身份分别表达不同的兼容信息。
