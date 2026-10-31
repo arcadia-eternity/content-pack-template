@@ -17,3 +17,5 @@ Work in the author's content project. Ask for the desired game behavior when its
 Report the behavior changed, tests actually run, build/environment identity when available and any unmet validation. Publishing, registry credentials and deployment remain under the author's control; do not publish or deploy as a side effect of testing.
 
 Build/check/rename/demo/pack are provided by @arcadia-eternity/content-dev in the main repository. Do not copy its implementation or generic tooling tests into this template. Keep only project content, effects, scenario configuration and behavior tests here.
+
+Presentation v2: edit `data/presentations/` and `data/resources/` separately from rules. Bind `target.kind/id` to content, use stable resource IDs in media slots, and keep paths/URLs only in resource `source`. Never insert presentation or legacy assetRef/iconRef/sfxRef into gameplay records. When moving media, update source without changing ID. Read current versions and preserve YAML sharing before saving. Names/descriptions remain in locales.

@@ -36,11 +36,13 @@ npm exec --offline -- arcadia-content setup --sdk-dir /absolute/path/to/author-s
 
 ```text
 data/
-  species/pet.yaml       # 包内头像、立绘、静态战斗形象
-  species/pet-swf.yaml   # 远程图片、SWF 和包内图片回退
+  species/pet.yaml       # 精灵规则
+  species/pet-swf.yaml   # 另一只精灵的规则
   skills/strike.yaml     # 攻击技能
   skills/rest.yaml       # 轻触技能
   marks/slow.yaml        # 减速印记
+  presentations/main.yaml # 对象与资源的用途绑定
+  resources/main.yaml     # 资源标识、类型和文件位置
 assets/pets/*.png        # 本包图片
 assets/marks/slow.png    # 印记图标
 locales/zh-CN/*.yaml     # 中文名称与富文本
@@ -86,10 +88,10 @@ defineCodeEffect({
 
 | 示例                                       | 入口                                                                                               |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| 包内独立头像、立绘、静态战斗形象           | [data/species/pet.yaml](data/species/pet.yaml)                                                     |
-| 远程图片、显式 SWF 播放器、包内图片回退    | [data/species/pet-swf.yaml](data/species/pet-swf.yaml)                                             |
-| 技能按需加载的远程音效                     | [data/skills/strike.yaml](data/skills/strike.yaml)                                                 |
-| 印记图标、富文本中的名称／图标／悬浮引用   | [data/marks/slow.yaml](data/marks/slow.yaml)、[locales/zh-CN/skill.yaml](locales/zh-CN/skill.yaml) |
+| 包内独立头像、立绘、静态战斗形象           | [data/presentations/main.yaml](data/presentations/main.yaml)                                                     |
+| 远程图片、显式 SWF 播放器、包内图片回退    | [data/presentations/main.yaml](data/presentations/main.yaml)                                             |
+| 技能按需加载的远程音效                     | [data/resources/main.yaml](data/resources/main.yaml)                                                 |
+| 印记图标、富文本中的名称／图标／悬浮引用   | [data/presentations/main.yaml](data/presentations/main.yaml)、[locales/zh-CN/skill.yaml](locales/zh-CN/skill.yaml) |
 | 中英双语、当前威力／命中率、条件与复数文本 | [locales/zh-CN/](locales/zh-CN/)、[locales/en/](locales/en/)                                       |
 
 ![包内默认战斗形象](assets/pets/frostling-battle.png) ![减速印记图标](assets/marks/slow.png)
@@ -132,9 +134,15 @@ GitHub Actions 从固定上游提交构建 SDK，执行相同检查，并上传�
 
 以下链接固定到模板所用的上游源码版本：
 
-- [Effect SDK：上下文、领域操作、参数、清理与失败语义](https://github.com/arcadia-eternity/arcadia-eternity/blob/9adab4f414ed3077ae494d3615d8351b10ce2878/docs/v4/effect-sdk.md)
-- [素材、语言与富文本合同](https://github.com/arcadia-eternity/arcadia-eternity/blob/9adab4f414ed3077ae494d3615d8351b10ce2878/docs/v4/content-presentation.md)
-- [npm 内容包、引用、安装、准入与固定环境](https://github.com/arcadia-eternity/arcadia-eternity/blob/9adab4f414ed3077ae494d3615d8351b10ce2878/docs/v4/npm-content.md)
-- [可选的选择、计算、capture/follow 与绑定工具](https://github.com/arcadia-eternity/arcadia-eternity/blob/9adab4f414ed3077ae494d3615d8351b10ce2878/docs/v4/effect-authoring.md)
+- [Effect SDK：上下文、领域操作、参数、清理与失败语义](https://github.com/arcadia-eternity/arcadia-eternity/blob/7d89e3a1e6bf8c58ee7fa54d4b32e97649cb4ffd/docs/v4/effect-sdk.md)
+- [素材、语言与富文本合同](https://github.com/arcadia-eternity/arcadia-eternity/blob/7d89e3a1e6bf8c58ee7fa54d4b32e97649cb4ffd/docs/v4/content-presentation.md)
+- [npm 内容包、引用、安装、准入与固定环境](https://github.com/arcadia-eternity/arcadia-eternity/blob/7d89e3a1e6bf8c58ee7fa54d4b32e97649cb4ffd/docs/v4/npm-content.md)
+- [可选的选择、计算、capture/follow 与绑定工具](https://github.com/arcadia-eternity/arcadia-eternity/blob/7d89e3a1e6bf8c58ee7fa54d4b32e97649cb4ffd/docs/v4/effect-authoring.md)
 
 升级 SDK／开发工具时，修改 `arcadia-sdk.json` 的固定提交，并重新运行 setup、类型检查和场景测试；活动对局仍应使用原来的固定环境。源码版本、SDK API 版本和实际构建身份分别表达不同的兼容信息。
+
+## 分离的表现与资源（v2）
+
+表现关联位于 `data/presentations/main.yaml`，资源定义位于 `data/resources/main.yaml`。规则只描述游戏内容，表现通过对象 ID 关联，图片与声音使用稳定资源 ID。移动素材时只更新资源定义的 `source`。见 [表现说明](docs/presentation.md)。
+
+`arcadia-sdk.json` 已固定到支持 v2 格式的上游提交；运行 `npm run setup` 即可安装配套 SDK。已有旧版本 SDK 的项目也需要重新运行 setup。
