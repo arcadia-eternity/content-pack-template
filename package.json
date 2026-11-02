@@ -12,20 +12,21 @@
     "docs"
   ],
   "scripts": {
-    "setup": "node --input-type=module -e \"const p=JSON.parse(await (await import('node:fs/promises')).readFile('arcadia-sdk.json','utf8'));const r=await fetch('https://raw.githubusercontent.com/arcadia-eternity/arcadia-eternity/'+p.revision+'/packages/content-dev/src/setup.mjs');if(!r.ok)throw Error('Cannot fetch pinned setup: '+r.status);const {setup}=await import('data:text/javascript;base64,'+Buffer.from(await r.text()).toString('base64'));await setup(process.argv.slice(1))\" --",
+    "setup": "npm install",
     "rename": "arcadia-content rename",
     "check": "arcadia-content check",
     "build": "arcadia-content build",
     "test": "npm run build && node --test test/*.test.mjs",
     "demo": "npm run build && arcadia-content demo",
-    "pack": "arcadia-content pack"
+    "pack": "arcadia-content pack",
+    "setup:source": "node --input-type=module -e \"const p=JSON.parse(await (await import('node:fs/promises')).readFile('arcadia-sdk.json','utf8'));const r=await fetch('https://raw.githubusercontent.com/arcadia-eternity/arcadia-eternity/'+p.revision+'/packages/content-dev/src/setup.mjs');if(!r.ok)throw Error('Cannot fetch pinned setup: '+r.status);const {setup}=await import('data:text/javascript;base64,'+Buffer.from(await r.text()).toString('base64'));await setup(process.argv.slice(1))\" --"
   },
   "devDependencies": {
-    "@arcadia-eternity/battle": "1.0.0",
-    "@arcadia-eternity/pack-loader": "1.0.0",
+    "@arcadia-eternity/battle": "4.0.0-preview.1",
+    "@arcadia-eternity/pack-loader": "4.0.0-preview.1",
     "@types/node": "25.6.0",
     "typescript": "6.0.3",
-    "@arcadia-eternity/content-dev": "0.1.0"
+    "@arcadia-eternity/content-dev": "4.0.0-preview.1"
   },
   "arcadia": {
     "formatVersion": 1,

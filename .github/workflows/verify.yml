@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  packages: read
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -15,8 +16,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Build and install the pinned SDK and author tool
-        run: npm run setup
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@arcadia-eternity'
+      - name: Install the published SDK and author tool
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.ARCADIA_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+        run: npm ci
       - name: Typecheck and exercise the actual npm package
         run: npm test
       - name: Create the content package

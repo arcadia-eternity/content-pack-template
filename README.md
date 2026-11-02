@@ -6,29 +6,36 @@
 
 ## 快速开始
 
-需要 **Node.js 24、npm 和 Git**；当前 SDK 开发物料支持 Linux／macOS。
+需要 **Node.js 24 和 npm**。SDK 和作者工具通过 GitHub Packages 发布，当前精确版本为 `4.0.0-preview.1`（`preview` 标签）。
 
 ```sh
 git clone https://github.com/YOUR-NAME/YOUR-PACK.git
 cd YOUR-PACK
-npm run setup
+npm login --scope=@arcadia-eternity --auth-type=legacy --registry=https://npm.pkg.github.com
+npm install
+npm run check
 npm test
 npm run demo
 ```
 
-首次 `setup` 的小入口从固定上游提交载入安装器；所有安装逻辑都在主仓库，模板不复制脚本。安装器需要网络：按 [arcadia-sdk.json](arcadia-sdk.json) 中固定的提交获取引擎源码，使用固定的 pnpm 版本和上游锁文件构建 SDK，再安装本项目的开发依赖。源码、SDK 物料和安装记录放在被 Git 忽略的 `.arcadia/` 中；后续运行可复用已生成的 SDK。工具作为 `@arcadia-eternity/content-dev` 安装到本项目，提供 `arcadia-content` 命令；`build/check/rename/demo/pack` 都调用它。
+登录时密码填写 GitHub personal access token (classic)，至少需要 `read:packages` 和包读取权限。项目 `.npmrc` 只配置 scope，不保存凭据；普通第三方依赖从 npmjs.org 获取。GitHub 对公开 npm 包也要求认证，见 [官方说明](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry)。
 
-**SDK 目前尚未正式发布到 npm。** 不要直接用 `npm install` 获取清单中的 Arcadia 目标版本，先运行 `npm run setup`。项目通过本地 tarball 安装 SDK；`package.json` 记录兼容目标，第三方依赖由 npm 正常获取。此开发安装不生成项目锁文件；部署内容包的服务器项目应单独维护标准 npm 锁文件。SDK 源码固定不等于所有宿主环境或未来第三方依赖字节都相同。
+`npm run setup` 是 `npm install` 的别名。安装不再编译主仓库；工具通过 `@arcadia-eternity/content-dev` 提供 `arcadia-content` 命令。首次安装后提交 `package-lock.json`，后续使用 `npm ci`。
 
-已经有与目标宿主匹配的 SDK 物料时，也可以：
+需要官方基础内容时可另行安装：
 
 ```sh
-npm run setup -- --sdk-dir /absolute/path/to/author-sdk
-# 只有第三方依赖已进入 npm 缓存时才能离线安装：
-npm exec --offline -- arcadia-content setup --sdk-dir /absolute/path/to/author-sdk --offline
+npm install --save-exact @arcadia-eternity/data-pack-base@4.0.0-preview.1
 ```
 
-物料目录需包含 `arcadia-author-sdk.json` 和列出的全部 `.tgz`，包括开发工具包。可在上游构建工具依赖图后运行 `node scripts/stage-author-sdk.mjs /new/sdk-dir` 生成。首次入口需要网络；安装过工具后，以上第二条命令才可完全离线运行。安装脚本核对 API 版本、SDK 产物校验和及安装后的构建身份；使用外部物料时，安装记录不会声称其来自模板固定的源码提交。
+本模板的示例本身无需基础数据包。需要匹配未发布的本地宿主时，仍可选择源码安装器或已有开发 SDK：
+
+```sh
+npm run setup:source
+npm run setup:source -- --sdk-dir /absolute/path/to/author-sdk
+```
+
+源码安装器根据 `arcadia-sdk.json` 的固定提交构建，支持 Linux／macOS；已有物料目录需要 `arcadia-author-sdk.json` 和其中的七个 SDK `.tgz`。本地开发物料与 registry 发布分别维护。
 
 ## 数据按文件组织
 
@@ -48,6 +55,7 @@ assets/marks/slow.png    # 印记图标
 locales/zh-CN/*.yaml     # 中文名称与富文本
 locales/en/*.yaml        # 英文翻译，使用相同局部 ID
 src/effects.ts           # TypeScript 效果
+debug/teams/*.yaml      # 可保存的演示与测试队伍
 dist/presentation.json  # 构建生成的素材／语言索引
 dist/content.json        # 构建生成，不提交、不手工编辑
 ```
@@ -63,7 +71,7 @@ JSON、YAML 都可以；默认每个对象一个文件，也支持单文件数�
 | [data/](data/)                                                                                         | 分类目录中的精灵、技能、印记及相互引用，每个对象独立文件 |
 | [src/effects.ts](src/effects.ts)                                                                       | 效果逻辑：原生命中回调、参数和持续速度贡献               |
 | [test/pack.test.mjs](test/pack.test.mjs)                                                               | 实际 npm 包在真实引擎中的场景断言                        |
-| [arcadia.config.mjs](arcadia.config.mjs)                                                               | 演示／测试队伍；通过传入的 namespace 引用本包内容        |
+| [arcadia.config.mjs](arcadia.config.mjs)                                                               | 选择 `debug/teams` 中的演示／测试队伍                    |
 | [arcadia-sdk.json](arcadia-sdk.json)                                                                   | SDK 来源、固定提交和 API 兼容版本                        |
 | [.agents/skills/arcadia-content-authoring/SKILL.md](.agents/skills/arcadia-content-authoring/SKILL.md) | 供编码助手使用的创作与验证指引                           |
 
@@ -86,17 +94,17 @@ defineCodeEffect({
 
 ## 素材与富文本示例
 
-| 示例                                       | 入口                                                                                               |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| 包内独立头像、立绘、静态战斗形象           | [data/presentations/main.yaml](data/presentations/main.yaml)                                                     |
-| 远程图片、显式 SWF 播放器、包内图片回退    | [data/presentations/main.yaml](data/presentations/main.yaml)                                             |
-| 技能按需加载的远程音效                     | [data/resources/main.yaml](data/resources/main.yaml)                                                 |
+| 示例                                       | 入口                                                                                                               |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| 包内独立头像、立绘、静态战斗形象           | [data/presentations/main.yaml](data/presentations/main.yaml)                                                       |
+| 远程图片、显式 SWF 播放器、包内图片回退    | [data/presentations/main.yaml](data/presentations/main.yaml)                                                       |
+| 技能按需加载的远程音效                     | [data/resources/main.yaml](data/resources/main.yaml)                                                               |
 | 印记图标、富文本中的名称／图标／悬浮引用   | [data/presentations/main.yaml](data/presentations/main.yaml)、[locales/zh-CN/skill.yaml](locales/zh-CN/skill.yaml) |
-| 中英双语、当前威力／命中率、条件与复数文本 | [locales/zh-CN/](locales/zh-CN/)、[locales/en/](locales/en/)                                       |
+| 中英双语、当前威力／命中率、条件与复数文本 | [locales/zh-CN/](locales/zh-CN/)、[locales/en/](locales/en/)                                                       |
 
 ![包内默认战斗形象](assets/pets/frostling-battle.png) ![减速印记图标](assets/marks/slow.png)
 
-默认演示队伍仍使用 `pet`；在组队时选择 `example-pack:pet-swf`，或把 `arcadia.config.mjs` 中的 species 改为 `${namespace}:pet-swf`，可试用远程外观。远程素材不随构建、打包或环境准备下载，客户端按用途加载，不建立素材缓存。`npm run demo` 是无界面的战斗演示，不播放图片、音效或 SWF。
+默认演示队伍仍使用 `pet`；在组队时选择 `example-pack:pet-swf`，或把 `debug/teams/*.yaml` 中的 species 改为 `example-pack:pet-swf`，可试用远程外观。远程素材不随构建、打包或环境准备下载，客户端按用途加载，不建立素材缓存。`npm run demo` 是无界面的战斗演示，不播放图片、音效或 SWF。
 
 具体字段、语言回退、动态印记文本、跨包资源和改名注意事项见 [素材与文本创作示例](docs/presentation.md)。
 
@@ -122,7 +130,7 @@ npm run pack   # 生成可供服务器安装的 .tgz
 
 测试覆盖未命中、命中、重复刷新、可修改参数、双局隔离、抑制、来源转移与移除、自然到期、受支持等待点的 JSON 保存／恢复，以及相同种子两场完整对战的一致性。它检查的是实际打包产物；内容包带上分文件源数据和生成的运行时数据；SDK 缓存、开发工具和测试不会进入内容包。通用工具自身的 JSON/YAML、重命名与安装回归在主仓库维护；模板只保留本包的行为测试。
 
-GitHub Actions 从固定上游提交构建 SDK，执行相同检查，并上传内容包 `.tgz`。它不发布 npm，也不配置生产服务器准入。
+GitHub Actions 从 GitHub Packages 安装精确 SDK 版本，执行相同检查，并上传内容包 `.tgz`。仓库可设置只读 `ARCADIA_PACKAGES_TOKEN` secret，或让工作流的 `GITHUB_TOKEN` 获得上游包读取权限。它不发布内容包，也不配置生产服务器准入。
 
 ## 交给服务器
 
@@ -134,15 +142,15 @@ GitHub Actions 从固定上游提交构建 SDK，执行相同检查，并上传�
 
 以下链接固定到模板所用的上游源码版本：
 
-- [Effect SDK：上下文、领域操作、参数、清理与失败语义](https://github.com/arcadia-eternity/arcadia-eternity/blob/7d89e3a1e6bf8c58ee7fa54d4b32e97649cb4ffd/docs/v4/effect-sdk.md)
-- [素材、语言与富文本合同](https://github.com/arcadia-eternity/arcadia-eternity/blob/7d89e3a1e6bf8c58ee7fa54d4b32e97649cb4ffd/docs/v4/content-presentation.md)
-- [npm 内容包、引用、安装、准入与固定环境](https://github.com/arcadia-eternity/arcadia-eternity/blob/7d89e3a1e6bf8c58ee7fa54d4b32e97649cb4ffd/docs/v4/npm-content.md)
-- [可选的选择、计算、capture/follow 与绑定工具](https://github.com/arcadia-eternity/arcadia-eternity/blob/7d89e3a1e6bf8c58ee7fa54d4b32e97649cb4ffd/docs/v4/effect-authoring.md)
+- [Effect SDK：上下文、领域操作、参数、清理与失败语义](https://github.com/arcadia-eternity/arcadia-eternity/blob/8f0a38654c558f56bd9a0f052afc24709e5267a6/docs/v4/effect-sdk.md)
+- [素材、语言与富文本合同](https://github.com/arcadia-eternity/arcadia-eternity/blob/8f0a38654c558f56bd9a0f052afc24709e5267a6/docs/v4/content-presentation.md)
+- [npm 内容包、引用、安装、准入与固定环境](https://github.com/arcadia-eternity/arcadia-eternity/blob/8f0a38654c558f56bd9a0f052afc24709e5267a6/docs/v4/npm-content.md)
+- [可选的选择、计算、capture/follow 与绑定工具](https://github.com/arcadia-eternity/arcadia-eternity/blob/8f0a38654c558f56bd9a0f052afc24709e5267a6/docs/v4/effect-authoring.md)
 
-升级 SDK／开发工具时，修改 `arcadia-sdk.json` 的固定提交，并重新运行 setup、类型检查和场景测试；活动对局仍应使用原来的固定环境。源码版本、SDK API 版本和实际构建身份分别表达不同的兼容信息。
+升级 SDK／开发工具时，修改 `package.json` 的精确版本，运行 `npm install` 更新锁文件，再运行类型检查和场景测试；活动对局仍应使用原来的固定环境。源码版本、SDK API 版本和实际构建身份分别表达不同的兼容信息。
 
 ## 分离的表现与资源（v2）
 
 表现关联位于 `data/presentations/main.yaml`，资源定义位于 `data/resources/main.yaml`。规则只描述游戏内容，表现通过对象 ID 关联，图片与声音使用稳定资源 ID。移动素材时只更新资源定义的 `source`。见 [表现说明](docs/presentation.md)。
 
-`arcadia-sdk.json` 已固定到支持 v2 格式的上游提交；运行 `npm run setup` 即可安装配套 SDK。已有旧版本 SDK 的项目也需要重新运行 setup。
+已发布 SDK 支持表现 v2；已有旧版本 SDK 的项目需要更新精确依赖并重新安装。
