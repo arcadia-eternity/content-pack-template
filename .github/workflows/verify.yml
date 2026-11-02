@@ -21,7 +21,11 @@ jobs:
       - name: Install the published SDK and author tool
         env:
           NODE_AUTH_TOKEN: ${{ secrets.ARCADIA_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund || {
+            cat /home/runner/.npm/_logs/*-debug-0.log
+            exit 1
+          }
       - name: Typecheck and exercise the actual npm package
         run: npm test
       - name: Create the content package
